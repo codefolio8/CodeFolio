@@ -1,0 +1,4 @@
+.env
+serviceAccountKey.json
+db.sqlite3
+settings.py
