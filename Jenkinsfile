@@ -1,19 +1,18 @@
-
 pipeline {
     agent any
 
     options {
-        timeout(time: 10, unit: 'MINUTES')  // Job auto-terminates after 10 minutes
-        buildDiscarder(logRotator(numToKeepStr: '10'))  // Keep last 10 builds
+        timeout(time:5, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
     environment {
         REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
-        GIT_CREDENTIALS = 'github-token'  // Your Jenkins GitHub credential ID
+        GIT_CREDENTIALS = 'github-token'
     }
 
     triggers {
-        pollSCM('H/5 * * * *')  // Poll every 5 minutes
+        pollSCM('H/3 * * * *')
     }
 
     stages {
@@ -35,20 +34,20 @@ pipeline {
                 git fetch origin bugfix
                 git checkout develop
                 git merge origin/bugfix --no-edit
-                git push --quiet https://<USERNAME>:<TOKEN>@github.com/codefolio8/CodeFolio.git develop
+                git push origin develop
                 """
             }
         }
 
         
+    }
 
     post {
         success {
-            echo '✅ Pipeline succeeded: bugfix merged and tests passed!'
+            echo 'Pipeline succeeded: bugfix merged and tests passed!'
         }
         failure {
-            echo '❌ Pipeline failed. Check console output for details.'
+            echo 'Pipeline failed. Check console output for details.'
         }
     }
 }
-
