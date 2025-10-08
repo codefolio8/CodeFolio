@@ -1,52 +1,55 @@
 pipeline {
     agent any
 
-    stages {
-        stage('Checkout bugfix branch') {
-            steps {
-                // Checkout the bugfix branch
-                git branch: 'bugfix', url: 'https://github.com/codefolio8/CodeFolio.git'
-            }
-        }
+    // Poll SCM every 5 minutes for changes
+    triggers {
+        pollSCM('H/3 * * * *')
+    }
 
-        stage('Configure Git') {
+    environment {
+        GIT_CREDENTIALS = 'github-token'   // Jenkins credential ID for GitHub PAT/SSH
+        REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
+    }
+
+    stages {
+        stage('Clone develop branch') {
             steps {
-                sh '''
-                git config --global user.email "ci-bot@jenkins.local"
-                git config --global user.name "Jenkins CI Bot"
-                '''
+                git branch: 'develop', url: "${REPO_URL}", credentialsId: "${GIT_CREDENTIALS}"
             }
         }
 
         stage('Merge bugfix into develop') {
             steps {
-                script {
-                    sh '''
-                    git fetch origin develop
-                    git checkout develop
-                    git merge origin/bugfix --no-edit || true
-                    '''
-                }
-            }
-        }
+                sh '''
+                git config user.email "jenkins@ci.local"
+                git config user.name "Jenkins CI"
 
-        stage('Push changes to develop') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
-                    sh '''
-                    git push https://${USER}:${TOKEN}@github.com/codefolio8/CodeFolio.git develop
-                    '''
-                }
+                # Add remote again (ensures clean)
+                git remote set-url origin ${REPO_URL}
+
+                # Fetch latest branches
+                git fetch origin develop
+                git fetch origin bugfix
+
+                # Checkout develop
+                git checkout develop
+
+                # Merge bugfix branch
+                git merge origin/bugfix --no-edit || true
+
+                # Push the merged develop branch back to GitHub
+                git push origin develop
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "Successfully merged 'bugfix' into 'develop'!"
+            echo '✅ Successfully merged bugfix into develop!'
         }
         failure {
-            echo "Merge or push failed — check the logs for conflicts."
+            echo '❌ Merge failed. Please resolve conflicts manually.'
         }
     }
 }
