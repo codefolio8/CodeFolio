@@ -20,7 +20,7 @@ pipeline {
 
         stage('Merge bugfix into develop') {
             steps {
-                sh '''
+                bat'''
                 git config user.email "jenkins@ci.local"
                 git config user.name "Jenkins CI"
 
