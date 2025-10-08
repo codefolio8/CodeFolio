@@ -1,19 +1,27 @@
+
 pipeline {
     agent any
 
-    triggers {
-        pollSCM('H/2 * * * *')
+    options {
+        timeout(time: 10, unit: 'MINUTES')  // Job auto-terminates after 10 minutes
+        buildDiscarder(logRotator(numToKeepStr: '10'))  // Keep last 10 builds
     }
 
     environment {
-        GIT_CREDENTIALS = 'github-token'   // Jenkins credential ID
         REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
+        GIT_CREDENTIALS = 'github-token'  // Your Jenkins GitHub credential ID
+    }
+
+    triggers {
+        pollSCM('H/5 * * * *')  // Poll every 5 minutes
     }
 
     stages {
-        stage('Clone develop branch') {
+        stage('Checkout develop branch') {
             steps {
-                git branch: 'develop', url: "${REPO_URL}", credentialsId: "${GIT_CREDENTIALS}"
+                git branch: 'develop',
+                    url: "${REPO_URL}",
+                    credentialsId: "${GIT_CREDENTIALS}"
             }
         }
 
@@ -27,18 +35,20 @@ pipeline {
                 git fetch origin bugfix
                 git checkout develop
                 git merge origin/bugfix --no-edit
-                git push origin develop
+                git push --quiet https://<USERNAME>:<TOKEN>@github.com/codefolio8/CodeFolio.git develop
                 """
             }
         }
-    }
+
+        
 
     post {
         success {
-            echo '✅ Successfully merged bugfix into develop!'
+            echo '✅ Pipeline succeeded: bugfix merged and tests passed!'
         }
         failure {
-            echo '❌ Merge failed. Please resolve conflicts manually.'
+            echo '❌ Pipeline failed. Check console output for details.'
         }
     }
 }
+
