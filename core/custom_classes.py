@@ -1,3 +1,5 @@
+
+#Added to explain the purpose
 class user:
     def __init__(self, username, user_id):
         self.username = username
