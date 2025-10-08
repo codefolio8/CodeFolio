@@ -24,16 +24,16 @@ pipeline {
             }
         }
 
-        stage('Merge develop → prod') {
+        stage('Merge develop → production) {
             steps {
-                echo "Merging 'develop' branch into 'prod'..."
+                echo "Merging 'develop' branch into 'main'..."
                 bat """
                     git config user.email "jenkins@ci.local"
                     git config user.name "Jenkins CI"
                     git fetch origin
-                    git checkout prod
+                    git checkout main
                     git merge origin/develop --no-edit
-                    git push origin prod
+                    git push origin main
                 """
                 echo "Merge completed successfully!"
             }
