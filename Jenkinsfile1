@@ -1,58 +1,58 @@
 pipeline {
-    agent any // Run on any available Jenkins agent
+    agent any
 
     options {
-        timeout(time:5, unit: 'MINUTES') // Stop if build runs longer than 10 minutes
-        buildDiscarder(logRotator(numToKeepStr: '10')) // Keep last 10 builds only
+        timeout(time: 5, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
     triggers {
-        pollSCM('H 2 * * *') // Poll GitHub once a day around 2 AM
+        pollSCM('H 2 * * *') // Poll once a day around 2 AM
     }
 
     environment {
-        REPO_URL = 'https://github.com/codefolio8/CodeFolio.git' // GitHub repo
-        GIT_CREDENTIALS = 'Jenkins-CI' // Jenkins credential ID (username + password)
+        REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
+        GIT_CREDENTIALS = 'Jenkins-CI'
     }
 
     stages {
 
         stage('Clone Repository') {
             steps {
-                echo "Cloning develop branch from ${REPO_URL}" // Info log
-                git branch: 'develop', url: "${REPO_URL}", credentialsId: "${GIT_CREDENTIALS}" // Checkout develop
+                echo "Cloning develop branch"
+                git branch: 'develop', url: "${REPO_URL}", credentialsId: "${GIT_CREDENTIALS}"
             }
         }
 
         stage('Merge develop to main') {
             steps {
-                echo "Merging develop branch into main" // Info log
+                echo "Merging develop branch into main"
                 bat """
-                    git config user.email "jenkins@ci.local" // Set git email
-                    git config user.name "Jenkins CI" // Set git username
-                    git fetch origin // Fetch latest branches
-                    git checkout main // Switch to main branch
-                    git merge origin/develop --no-edit // Merge develop into main
-                    git push origin main // Push merged changes
+                    git config user.email "jenkins@ci.local"
+                    git config user.name "Jenkins CI"
+                    git fetch origin
+                    git checkout main || git checkout -b main
+                    git merge origin/develop --no-edit
+                    git push origin main
                 """
-                echo "Merge completed successfully!" // Success log
+                echo "Merge completed successfully"
             }
         }
 
         stage('Simulated Deployment') {
             steps {
-                echo "🚀 Simulating deployment..." // Info log
-                
+                echo "Simulating deployment"
+                bat "echo Deployment simulation complete"
             }
         }
     }
 
     post {
         success {
-            echo 'CD simulation succeeded — develop merged into main!' // Success summary
+            echo 'CD simulation succeeded — develop merged into main'
         }
         failure {
-            echo 'CD simulation failed. Check logs.' // Failure summary
+            echo 'CD simulation failed. Check logs'
         }
     }
 }
