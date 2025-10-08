@@ -38,7 +38,14 @@ pipeline {
                 """
             }
         }
-
+        stage('Push changes') {
+            withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+            bat """
+            git remote set-url origin https://$GITHUB_TOKEN@github.com/codefolio8/CodeFolio.git
+            git push origin develop
+            """
+            }
+        }
         
     }
 
