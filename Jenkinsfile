@@ -12,7 +12,7 @@ pipeline {
     }
 
     triggers {
-        pollSCM('H/3 * * * *') // Poll every 3 minutes
+        pollSCM('H 2 * * *') // Poll every 3 minutes
     }
 
     stages {
