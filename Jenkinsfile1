@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+
+    options {
+        timeout(time: 5, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    environment {
+        REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
+        GIT_CREDENTIALS = 'Jenkins-CI' // Username+Password credential
+    }
+
+    triggers {
+        pollSCM('H/3 * * * *') // optional: poll every 5 minutes
+    }
+
+    stages {
+
+        stage('Checkout develop branch') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${GIT_CREDENTIALS}", 
+                                                 usernameVariable: 'GIT_USER', 
+                                                 passwordVariable: 'GIT_PASS')]) {
+                    bat """
+                    git clone https://%GIT_USER%:%GIT_PASS%@github.com/codefolio8/CodeFolio.git
+                    cd CodeFolio
+                    git checkout develop
+                    """
+                }
+            }
+        }
+
+        stage('Simulate Staging Deployment') {
+            steps {
+                bat """
+                echo "Code deployed to staging folder"
+                """
+            }
+        }
+
+        stage('Merge develop into prod and simulate Prod Deployment') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${GIT_CREDENTIALS}", 
+                                                 usernameVariable: 'GIT_USER', 
+                                                 passwordVariable: 'GIT_PASS')]) {
+                    bat """
+                    cd CodeFolio
+                    git checkout prod
+                    git merge develop --no-edit
+                    mkdir prod
+                    xcopy CodeFolio\\* prod\\ /s /y
+                    echo "Code deployed to prod folder"
+                    git push https://%GIT_USER%:%GIT_PASS%@github.com/codefolio8/CodeFolio.git prod
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Simulated deployment completed successfully!'
+        }
+        failure {
+            echo 'Deployment simulation failed. Check console output.'
+        }
+    }
+}
