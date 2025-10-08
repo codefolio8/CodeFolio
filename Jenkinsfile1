@@ -6,64 +6,53 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
-    environment {
-        REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
-        GIT_CREDENTIALS = 'Jenkins-CI' // Username+Password credential
+    triggers {
+        pollSCM('H 2 * * *') // Poll once a day around 2 AM
     }
 
-    triggers {
-        pollSCM('H 2 * * *') // optional: poll every 5 minutes
+    environment {
+        REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
+        GIT_CREDENTIALS = 'Jenkins-CI'
     }
 
     stages {
 
-        stage('Checkout develop branch') {
+        stage('Clone Repository') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_CREDENTIALS}", 
-                                                 usernameVariable: 'GIT_USER', 
-                                                 passwordVariable: 'GIT_PASS')]) {
-                    bat """
-                    git clone https://%GIT_USER%:%GIT_PASS%@github.com/codefolio8/CodeFolio.git
-                    cd CodeFolio
-                    git checkout develop
-                    """
-                }
+                echo "Cloning repository from ${REPO_URL}"
+                git branch: 'develop', url: "${REPO_URL}", credentialsId: "${GIT_CREDENTIALS}"
             }
         }
 
-        stage('Simulate Staging Deployment') {
+        stage('Merge develop → prod') {
             steps {
+                echo "Merging 'develop' branch into 'prod'..."
                 bat """
-                echo "Code deployed to staging folder"
+                    git config user.email "jenkins@ci.local"
+                    git config user.name "Jenkins CI"
+                    git fetch origin
+                    git checkout prod
+                    git merge origin/develop --no-edit
+                    git push origin prod
                 """
+                echo "Merge completed successfully!"
             }
         }
 
-        stage('Merge develop into prod and simulate Prod Deployment') {
+        stage('Simulated Deployment') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_CREDENTIALS}", 
-                                                 usernameVariable: 'GIT_USER', 
-                                                 passwordVariable: 'GIT_PASS')]) {
-                    bat """
-                    cd CodeFolio
-                    git checkout prod
-                    git merge develop --no-edit
-                    mkdir prod
-                    xcopy CodeFolio\\* prod\\ /s /y
-                    echo "Code deployed to prod folder"
-                    git push https://%GIT_USER%:%GIT_PASS%@github.com/codefolio8/CodeFolio.git prod
-                    """
-                }
+                echo "Simulating deployment to production..."
+                echo "Production server would be updated here."
             }
         }
     }
 
     post {
         success {
-            echo 'Simulated deployment completed successfully!'
+            echo 'Continuous Deployment simulation succeeded — develop merged into prod!'
         }
         failure {
-            echo 'Deployment simulation failed. Check console output.'
+            echo 'CD simulation failed. '
         }
     }
 }
