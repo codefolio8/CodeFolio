@@ -1,13 +1,12 @@
 pipeline {
     agent any
 
-    // Poll SCM every 5 minutes for changes
     triggers {
-        pollSCM('H/3 * * * *')
+        pollSCM('H/2 * * * *')
     }
 
     environment {
-        GIT_CREDENTIALS = 'github-token'   // Jenkins credential ID for GitHub PAT/SSH
+        GIT_CREDENTIALS = 'github-token'   // Jenkins credential ID
         REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
     }
 
@@ -20,24 +19,14 @@ pipeline {
 
         stage('Merge bugfix into develop') {
             steps {
-                bat'''
+                bat '''
                 git config user.email "jenkins@ci.local"
                 git config user.name "Jenkins CI"
-
-                # Add remote again (ensures clean)
                 git remote set-url origin ${REPO_URL}
-
-                # Fetch latest branches
                 git fetch origin develop
                 git fetch origin bugfix
-
-                # Checkout develop
                 git checkout develop
-
-                # Merge bugfix branch
-                git merge origin/bugfix --no-edit || true
-
-                # Push the merged develop branch back to GitHub
+                git merge origin/bugfix --no-edit
                 git push origin develop
                 '''
             }
