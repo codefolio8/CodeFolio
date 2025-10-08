@@ -19,7 +19,7 @@ pipeline {
 
         stage('Merge bugfix into develop') {
             steps {
-                bat '''
+                bat """
                 git config user.email "jenkins@ci.local"
                 git config user.name "Jenkins CI"
                 git remote set-url origin ${REPO_URL}
@@ -28,7 +28,7 @@ pipeline {
                 git checkout develop
                 git merge origin/bugfix --no-edit
                 git push origin develop
-                '''
+                """
             }
         }
     }
