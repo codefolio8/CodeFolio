@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     options {
-        timeout(time: 5, unit: 'MINUTES') // Set timeout for each build
+        timeout(time: 5, unit: 'MINUTES') // Timeout for each build
         buildDiscarder(logRotator(numToKeepStr: '10')) // Keep last 10 builds
     }
 
     environment {
         REPO_URL = 'https://github.com/codefolio8/CodeFolio.git'
-        GIT_CREDENTIALS = 'Jenkins-CI'
+        GIT_CREDENTIALS = 'Jenkins-CI' // Username+Password credential ID
     }
 
     triggers {
@@ -19,33 +19,44 @@ pipeline {
 
         stage('Checkout develop branch') {
             steps {
-                // Checkout develop branch securely
-                git branch: 'develop',
-                    url: "${REPO_URL}",
-                    credentialsId: "${GIT_CREDENTIALS}"
+                withCredentials([usernamePassword(credentialsId: "${GIT_CREDENTIALS}", 
+                                                 usernameVariable: 'GIT_USER', 
+                                                 passwordVariable: 'GIT_PASS')]) {
+                    bat """
+                    git config user.email "jenkins@ci.local"
+                    git config user.name "Jenkins CI"
+                    git clone https://%GIT_USER%:%GIT_PASS%@github.com/codefolio8/CodeFolio.git
+                    cd CodeFolio
+                    git checkout develop
+                    """
+                }
             }
         }
 
         stage('Merge bugfix into develop') {
             steps {
-                // Merge bugfix branch into develop locally
-                bat """
-                git config user.email "jenkins@ci.local"
-                git config user.name "Jenkins CI"
-                git fetch origin develop
-                git fetch origin bugfix
-                git checkout develop
-                git merge origin/bugfix --no-edit
-                """
+                withCredentials([usernamePassword(credentialsId: "${GIT_CREDENTIALS}", 
+                                                 usernameVariable: 'GIT_USER', 
+                                                 passwordVariable: 'GIT_PASS')]) {
+                    bat """
+                    cd CodeFolio
+                    git fetch origin develop
+                    git fetch origin bugfix
+                    git checkout develop
+                    git merge origin/bugfix --no-edit
+                    """
+                }
             }
         }
 
         stage('Push changes') {
             steps {
-                // Push merged changes securely using token
-                withCredentials([string(credentialsId: 'Jenkins-CI', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: "${GIT_CREDENTIALS}", 
+                                                 usernameVariable: 'GIT_USER', 
+                                                 passwordVariable: 'GIT_PASS')]) {
                     bat """
-                    git remote set-url origin https://$GITHUB_TOKEN@github.com/codefolio8/CodeFolio.git
+                    cd CodeFolio
+                    git remote set-url origin https://%GIT_USER%:%GIT_PASS%@github.com/codefolio8/CodeFolio.git
                     git push origin develop
                     """
                 }
